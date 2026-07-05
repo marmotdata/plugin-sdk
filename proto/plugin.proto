@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package marmot.plugin.v1;
+
+option go_package = "github.com/marmotdata/plugin-sdk/proto";
+
+// Source is the gRPC service every Marmot plugin exposes over go-plugin.
+// Config, metadata, and discovery payloads are JSON-encoded so the wire
+// protocol stays stable while plugin-facing Go types evolve.
+service Source {
+  rpc GetMeta(GetMetaRequest) returns (GetMetaResponse);
+  rpc Validate(ValidateRequest) returns (ValidateResponse);
+  rpc Discover(DiscoverRequest) returns (DiscoverResponse);
+}
+
+message GetMetaRequest {}
+
+message GetMetaResponse {
+  // JSON-encoded pluginsdk.Meta
+  bytes meta_json = 1;
+}
+
+message ValidateRequest {
+  // JSON-encoded raw plugin config
+  bytes config_json = 1;
+}
+
+message ValidateResponse {
+  // JSON-encoded validated config
+  bytes config_json = 1;
+}
+
+message DiscoverRequest {
+  // JSON-encoded raw plugin config
+  bytes config_json = 1;
+}
+
+message DiscoverResponse {
+  // JSON-encoded pluginsdk.DiscoveryResult
+  bytes result_json = 1;
+}
