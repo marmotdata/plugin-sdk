@@ -17,15 +17,12 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	gitssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	pluginsdk "github.com/marmotdata/plugin-sdk"
 	"github.com/rs/zerolog/log"
 	"sigs.k8s.io/yaml"
 )
@@ -39,7 +36,7 @@ type FileSourceConfig struct {
 
 // S3SourceConfig holds configuration for downloading files from S3.
 type S3SourceConfig struct {
-	Credentials AWSCredentials `json:"credentials" description:"AWS credentials for S3 access"`
+	Credentials pluginsdk.AWSCredentials `json:"credentials" description:"AWS credentials for S3 access"`
 }
 
 // GitSourceConfig holds configuration for cloning a Git repository.
@@ -49,19 +46,6 @@ type GitSourceConfig struct {
 	Path       string `json:"path,omitempty" description:"Subdirectory within the repository"`
 	Token      string `json:"token,omitempty" description:"Personal access token for HTTPS auth" sensitive:"true"`
 	SSHKeyPath string `json:"ssh_key_path,omitempty" description:"Path to SSH private key for SSH auth"`
-}
-
-// AWSCredentials configures how the S3 file source authenticates with AWS.
-type AWSCredentials struct {
-	UseDefault     bool   `json:"use_default,omitempty" description:"Use AWS credentials from environment or default profile (recommended)" default:"true"`
-	ID             string `json:"id,omitempty" description:"AWS access key ID"`
-	Secret         string `json:"secret,omitempty" description:"AWS secret access key" sensitive:"true"`
-	Token          string `json:"token,omitempty" description:"AWS session token" sensitive:"true"`
-	Profile        string `json:"profile,omitempty" description:"AWS profile to use from shared credentials file"`
-	Role           string `json:"role,omitempty" description:"AWS IAM role ARN to assume"`
-	RoleExternalID string `json:"role_external_id,omitempty" description:"External ID for cross-account role assumption"`
-	Region         string `json:"region,omitempty" description:"AWS region for services"`
-	Endpoint       string `json:"endpoint,omitempty" description:"Custom endpoint URL for AWS services" validate:"omitempty,url"`
 }
 
 // ResolveFilePath resolves a path to a local filesystem path, S3 or git.
@@ -156,7 +140,7 @@ func ExtractFileSourceConfig(rawConfig map[string]interface{}) (*FileSourceConfi
 func resolveS3Path(ctx context.Context, fsc *FileSourceConfig, path string) (string, func(), error) {
 	noop := func() {}
 
-	var creds AWSCredentials
+	var creds pluginsdk.AWSCredentials
 
 	if fsc != nil && fsc.S3Source != nil {
 		creds = fsc.S3Source.Credentials
@@ -171,7 +155,8 @@ func resolveS3Path(ctx context.Context, fsc *FileSourceConfig, path string) (str
 		return "", noop, err
 	}
 
-	awsConfig, err := newAWSConfig(ctx, creds)
+	awsCfg := &pluginsdk.AWSConfig{Credentials: creds}
+	awsConfig, err := awsCfg.NewAWSConfig(ctx)
 	if err != nil {
 		return "", noop, fmt.Errorf("creating AWS config: %w", err)
 	}
@@ -210,61 +195,6 @@ func resolveS3Path(ctx context.Context, fsc *FileSourceConfig, path string) (str
 	}
 
 	return tmpDir, cleanup, nil
-}
-
-// newAWSConfig loads an AWS SDK config from the plugin's credential settings,
-// mirroring the credential chain behavior of the Marmot host.
-func newAWSConfig(ctx context.Context, creds AWSCredentials) (aws.Config, error) {
-	var opts []func(*config.LoadOptions) error
-
-	if creds.Region != "" {
-		opts = append(opts, config.WithRegion(creds.Region))
-	}
-
-	// If UseDefault is true or no explicit credentials provided, use default credential chain
-	if creds.UseDefault || (creds.ID == "" && creds.Profile == "") {
-		// Just load default config - will follow AWS credential chain
-		if creds.Profile != "" {
-			opts = append(opts, config.WithSharedConfigProfile(creds.Profile))
-		}
-	} else {
-		// Use explicit credentials if provided
-		if creds.ID != "" && creds.Secret != "" {
-			provider := credentials.NewStaticCredentialsProvider(
-				creds.ID,
-				creds.Secret,
-				creds.Token,
-			)
-			opts = append(opts, config.WithCredentialsProvider(provider))
-		}
-
-		if creds.Profile != "" {
-			opts = append(opts, config.WithSharedConfigProfile(creds.Profile))
-		}
-	}
-
-	cfg, err := config.LoadDefaultConfig(ctx, opts...)
-	if err != nil {
-		return aws.Config{}, fmt.Errorf("loading AWS config: %w", err)
-	}
-
-	if creds.Role != "" {
-		stsClient := sts.NewFromConfig(cfg)
-		assumeRoleOpts := func(o *stscreds.AssumeRoleOptions) {
-			if creds.RoleExternalID != "" {
-				o.ExternalID = aws.String(creds.RoleExternalID)
-			}
-		}
-
-		provider := stscreds.NewAssumeRoleProvider(stsClient, creds.Role, assumeRoleOpts)
-		cfg.Credentials = aws.NewCredentialsCache(provider)
-	}
-
-	if creds.Endpoint != "" {
-		cfg.BaseEndpoint = aws.String(creds.Endpoint)
-	}
-
-	return cfg, nil
 }
 
 func downloadS3Object(ctx context.Context, client *s3.Client, bucket, key, localPath string) error {
