@@ -13,11 +13,17 @@ type Source interface {
 
 // Meta describes a plugin to the Marmot host: identity, display
 // information, and the config spec used to render its settings form.
+//
+// Status and Features drive documentation rendering. Status is one of
+// "stable", "beta", or "experimental". Features is the list of asset
+// kinds the plugin produces (e.g. "Assets", "Lineage", "Run History").
 type Meta struct {
 	ID          string        `json:"id"`
 	Name        string        `json:"name"`
 	Description string        `json:"description"`
 	Icon        string        `json:"icon"`
 	Category    string        `json:"category"`
+	Status      string        `json:"status"`
+	Features    []string      `json:"features,omitempty"`
 	ConfigSpec  []ConfigField `json:"config_spec"`
 }
