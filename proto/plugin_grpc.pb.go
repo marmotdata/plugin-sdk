@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Source_GetMeta_FullMethodName  = "/marmot.plugin.v1.Source/GetMeta"
-	Source_Validate_FullMethodName = "/marmot.plugin.v1.Source/Validate"
-	Source_Discover_FullMethodName = "/marmot.plugin.v1.Source/Discover"
+	Source_GetMeta_FullMethodName         = "/marmot.plugin.v1.Source/GetMeta"
+	Source_Validate_FullMethodName        = "/marmot.plugin.v1.Source/Validate"
+	Source_Discover_FullMethodName        = "/marmot.plugin.v1.Source/Discover"
+	Source_FetchSampleData_FullMethodName = "/marmot.plugin.v1.Source/FetchSampleData"
 )
 
 // SourceClient is the client API for Source service.
@@ -35,6 +36,9 @@ type SourceClient interface {
 	GetMeta(ctx context.Context, in *GetMetaRequest, opts ...grpc.CallOption) (*GetMetaResponse, error)
 	Validate(ctx context.Context, in *ValidateRequest, opts ...grpc.CallOption) (*ValidateResponse, error)
 	Discover(ctx context.Context, in *DiscoverRequest, opts ...grpc.CallOption) (*DiscoverResponse, error)
+	// FetchSampleData is optional; plugins whose source does not implement
+	// DataFetcher respond with UNIMPLEMENTED.
+	FetchSampleData(ctx context.Context, in *FetchSampleDataRequest, opts ...grpc.CallOption) (*FetchSampleDataResponse, error)
 }
 
 type sourceClient struct {
@@ -75,6 +79,16 @@ func (c *sourceClient) Discover(ctx context.Context, in *DiscoverRequest, opts .
 	return out, nil
 }
 
+func (c *sourceClient) FetchSampleData(ctx context.Context, in *FetchSampleDataRequest, opts ...grpc.CallOption) (*FetchSampleDataResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FetchSampleDataResponse)
+	err := c.cc.Invoke(ctx, Source_FetchSampleData_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SourceServer is the server API for Source service.
 // All implementations must embed UnimplementedSourceServer
 // for forward compatibility.
@@ -86,6 +100,9 @@ type SourceServer interface {
 	GetMeta(context.Context, *GetMetaRequest) (*GetMetaResponse, error)
 	Validate(context.Context, *ValidateRequest) (*ValidateResponse, error)
 	Discover(context.Context, *DiscoverRequest) (*DiscoverResponse, error)
+	// FetchSampleData is optional; plugins whose source does not implement
+	// DataFetcher respond with UNIMPLEMENTED.
+	FetchSampleData(context.Context, *FetchSampleDataRequest) (*FetchSampleDataResponse, error)
 	mustEmbedUnimplementedSourceServer()
 }
 
@@ -104,6 +121,9 @@ func (UnimplementedSourceServer) Validate(context.Context, *ValidateRequest) (*V
 }
 func (UnimplementedSourceServer) Discover(context.Context, *DiscoverRequest) (*DiscoverResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Discover not implemented")
+}
+func (UnimplementedSourceServer) FetchSampleData(context.Context, *FetchSampleDataRequest) (*FetchSampleDataResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method FetchSampleData not implemented")
 }
 func (UnimplementedSourceServer) mustEmbedUnimplementedSourceServer() {}
 func (UnimplementedSourceServer) testEmbeddedByValue()                {}
@@ -180,6 +200,24 @@ func _Source_Discover_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Source_FetchSampleData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchSampleDataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SourceServer).FetchSampleData(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Source_FetchSampleData_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SourceServer).FetchSampleData(ctx, req.(*FetchSampleDataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Source_ServiceDesc is the grpc.ServiceDesc for Source service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -198,6 +236,10 @@ var Source_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Discover",
 			Handler:    _Source_Discover_Handler,
+		},
+		{
+			MethodName: "FetchSampleData",
+			Handler:    _Source_FetchSampleData_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

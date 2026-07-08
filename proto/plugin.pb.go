@@ -282,6 +282,105 @@ func (x *DiscoverResponse) GetResultJson() []byte {
 	return nil
 }
 
+type FetchSampleDataRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// JSON-encoded raw plugin config
+	ConfigJson []byte `protobuf:"bytes,1,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
+	// JSON-encoded pluginsdk.Asset to fetch sample data for
+	AssetJson     []byte `protobuf:"bytes,2,opt,name=asset_json,json=assetJson,proto3" json:"asset_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FetchSampleDataRequest) Reset() {
+	*x = FetchSampleDataRequest{}
+	mi := &file_proto_plugin_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FetchSampleDataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchSampleDataRequest) ProtoMessage() {}
+
+func (x *FetchSampleDataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_plugin_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchSampleDataRequest.ProtoReflect.Descriptor instead.
+func (*FetchSampleDataRequest) Descriptor() ([]byte, []int) {
+	return file_proto_plugin_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *FetchSampleDataRequest) GetConfigJson() []byte {
+	if x != nil {
+		return x.ConfigJson
+	}
+	return nil
+}
+
+func (x *FetchSampleDataRequest) GetAssetJson() []byte {
+	if x != nil {
+		return x.AssetJson
+	}
+	return nil
+}
+
+type FetchSampleDataResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// JSON-encoded pluginsdk.SampleData
+	ResultJson    []byte `protobuf:"bytes,1,opt,name=result_json,json=resultJson,proto3" json:"result_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FetchSampleDataResponse) Reset() {
+	*x = FetchSampleDataResponse{}
+	mi := &file_proto_plugin_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FetchSampleDataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchSampleDataResponse) ProtoMessage() {}
+
+func (x *FetchSampleDataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_plugin_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchSampleDataResponse.ProtoReflect.Descriptor instead.
+func (*FetchSampleDataResponse) Descriptor() ([]byte, []int) {
+	return file_proto_plugin_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *FetchSampleDataResponse) GetResultJson() []byte {
+	if x != nil {
+		return x.ResultJson
+	}
+	return nil
+}
+
 var File_proto_plugin_proto protoreflect.FileDescriptor
 
 const file_proto_plugin_proto_rawDesc = "" +
@@ -301,11 +400,20 @@ const file_proto_plugin_proto_rawDesc = "" +
 	"configJson\"3\n" +
 	"\x10DiscoverResponse\x12\x1f\n" +
 	"\vresult_json\x18\x01 \x01(\fR\n" +
-	"resultJson2\xfe\x01\n" +
+	"resultJson\"X\n" +
+	"\x16FetchSampleDataRequest\x12\x1f\n" +
+	"\vconfig_json\x18\x01 \x01(\fR\n" +
+	"configJson\x12\x1d\n" +
+	"\n" +
+	"asset_json\x18\x02 \x01(\fR\tassetJson\":\n" +
+	"\x17FetchSampleDataResponse\x12\x1f\n" +
+	"\vresult_json\x18\x01 \x01(\fR\n" +
+	"resultJson2\xe6\x02\n" +
 	"\x06Source\x12N\n" +
 	"\aGetMeta\x12 .marmot.plugin.v1.GetMetaRequest\x1a!.marmot.plugin.v1.GetMetaResponse\x12Q\n" +
 	"\bValidate\x12!.marmot.plugin.v1.ValidateRequest\x1a\".marmot.plugin.v1.ValidateResponse\x12Q\n" +
-	"\bDiscover\x12!.marmot.plugin.v1.DiscoverRequest\x1a\".marmot.plugin.v1.DiscoverResponseB(Z&github.com/marmotdata/plugin-sdk/protob\x06proto3"
+	"\bDiscover\x12!.marmot.plugin.v1.DiscoverRequest\x1a\".marmot.plugin.v1.DiscoverResponse\x12f\n" +
+	"\x0fFetchSampleData\x12(.marmot.plugin.v1.FetchSampleDataRequest\x1a).marmot.plugin.v1.FetchSampleDataResponseB(Z&github.com/marmotdata/plugin-sdk/protob\x06proto3"
 
 var (
 	file_proto_plugin_proto_rawDescOnce sync.Once
@@ -319,24 +427,28 @@ func file_proto_plugin_proto_rawDescGZIP() []byte {
 	return file_proto_plugin_proto_rawDescData
 }
 
-var file_proto_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_proto_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_proto_plugin_proto_goTypes = []any{
-	(*GetMetaRequest)(nil),   // 0: marmot.plugin.v1.GetMetaRequest
-	(*GetMetaResponse)(nil),  // 1: marmot.plugin.v1.GetMetaResponse
-	(*ValidateRequest)(nil),  // 2: marmot.plugin.v1.ValidateRequest
-	(*ValidateResponse)(nil), // 3: marmot.plugin.v1.ValidateResponse
-	(*DiscoverRequest)(nil),  // 4: marmot.plugin.v1.DiscoverRequest
-	(*DiscoverResponse)(nil), // 5: marmot.plugin.v1.DiscoverResponse
+	(*GetMetaRequest)(nil),          // 0: marmot.plugin.v1.GetMetaRequest
+	(*GetMetaResponse)(nil),         // 1: marmot.plugin.v1.GetMetaResponse
+	(*ValidateRequest)(nil),         // 2: marmot.plugin.v1.ValidateRequest
+	(*ValidateResponse)(nil),        // 3: marmot.plugin.v1.ValidateResponse
+	(*DiscoverRequest)(nil),         // 4: marmot.plugin.v1.DiscoverRequest
+	(*DiscoverResponse)(nil),        // 5: marmot.plugin.v1.DiscoverResponse
+	(*FetchSampleDataRequest)(nil),  // 6: marmot.plugin.v1.FetchSampleDataRequest
+	(*FetchSampleDataResponse)(nil), // 7: marmot.plugin.v1.FetchSampleDataResponse
 }
 var file_proto_plugin_proto_depIdxs = []int32{
 	0, // 0: marmot.plugin.v1.Source.GetMeta:input_type -> marmot.plugin.v1.GetMetaRequest
 	2, // 1: marmot.plugin.v1.Source.Validate:input_type -> marmot.plugin.v1.ValidateRequest
 	4, // 2: marmot.plugin.v1.Source.Discover:input_type -> marmot.plugin.v1.DiscoverRequest
-	1, // 3: marmot.plugin.v1.Source.GetMeta:output_type -> marmot.plugin.v1.GetMetaResponse
-	3, // 4: marmot.plugin.v1.Source.Validate:output_type -> marmot.plugin.v1.ValidateResponse
-	5, // 5: marmot.plugin.v1.Source.Discover:output_type -> marmot.plugin.v1.DiscoverResponse
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	6, // 3: marmot.plugin.v1.Source.FetchSampleData:input_type -> marmot.plugin.v1.FetchSampleDataRequest
+	1, // 4: marmot.plugin.v1.Source.GetMeta:output_type -> marmot.plugin.v1.GetMetaResponse
+	3, // 5: marmot.plugin.v1.Source.Validate:output_type -> marmot.plugin.v1.ValidateResponse
+	5, // 6: marmot.plugin.v1.Source.Discover:output_type -> marmot.plugin.v1.DiscoverResponse
+	7, // 7: marmot.plugin.v1.Source.FetchSampleData:output_type -> marmot.plugin.v1.FetchSampleDataResponse
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -353,7 +465,7 @@ func file_proto_plugin_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_plugin_proto_rawDesc), len(file_proto_plugin_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

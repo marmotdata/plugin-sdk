@@ -30,10 +30,14 @@ var Handshake = goplugin.HandshakeConfig{
 
 // RemoteSource is the host-facing view of a plugin process. It mirrors
 // Source but is context-aware and exposes the plugin's metadata.
+// FetchSampleData fails with an Unimplemented gRPC status when the
+// plugin's Source does not implement DataFetcher; hosts should check
+// Meta.SupportsDataPreview before calling it.
 type RemoteSource interface {
 	GetMeta(ctx context.Context) (*Meta, error)
 	Validate(ctx context.Context, config RawConfig) (RawConfig, error)
 	Discover(ctx context.Context, config RawConfig) (*DiscoveryResult, error)
+	FetchSampleData(ctx context.Context, config RawConfig, a *Asset) ([]string, [][]interface{}, error)
 }
 
 // sourcePlugin implements go-plugin's GRPCPlugin for the Source service.

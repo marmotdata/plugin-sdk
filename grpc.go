@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/marmotdata/plugin-sdk/proto"
 )
 
@@ -60,6 +63,34 @@ func (s *grpcServer) Discover(ctx context.Context, req *proto.DiscoverRequest) (
 	return &proto.DiscoverResponse{ResultJson: data}, nil
 }
 
+func (s *grpcServer) FetchSampleData(ctx context.Context, req *proto.FetchSampleDataRequest) (*proto.FetchSampleDataResponse, error) {
+	fetcher, ok := s.source.(DataFetcher)
+	if !ok {
+		return nil, status.Error(codes.Unimplemented, "plugin does not support data preview")
+	}
+
+	var config RawConfig
+	if err := json.Unmarshal(req.ConfigJson, &config); err != nil {
+		return nil, fmt.Errorf("unmarshaling config: %w", err)
+	}
+
+	var a Asset
+	if err := json.Unmarshal(req.AssetJson, &a); err != nil {
+		return nil, fmt.Errorf("unmarshaling asset: %w", err)
+	}
+
+	columnNames, rows, err := fetcher.FetchSampleData(ctx, config, &a)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := json.Marshal(SampleData{ColumnNames: columnNames, Rows: rows})
+	if err != nil {
+		return nil, fmt.Errorf("marshaling sample data: %w", err)
+	}
+	return &proto.FetchSampleDataResponse{ResultJson: data}, nil
+}
+
 // grpcClient runs inside the host process and adapts RemoteSource calls
 // onto the plugin's gRPC service.
 type grpcClient struct {
@@ -113,4 +144,30 @@ func (c *grpcClient) Discover(ctx context.Context, config RawConfig) (*Discovery
 		return nil, fmt.Errorf("unmarshaling discovery result: %w", err)
 	}
 	return &result, nil
+}
+
+func (c *grpcClient) FetchSampleData(ctx context.Context, config RawConfig, a *Asset) ([]string, [][]interface{}, error) {
+	configData, err := json.Marshal(config)
+	if err != nil {
+		return nil, nil, fmt.Errorf("marshaling config: %w", err)
+	}
+
+	assetData, err := json.Marshal(a)
+	if err != nil {
+		return nil, nil, fmt.Errorf("marshaling asset: %w", err)
+	}
+
+	resp, err := c.client.FetchSampleData(ctx, &proto.FetchSampleDataRequest{
+		ConfigJson: configData,
+		AssetJson:  assetData,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var result SampleData
+	if err := json.Unmarshal(resp.ResultJson, &result); err != nil {
+		return nil, nil, fmt.Errorf("unmarshaling sample data: %w", err)
+	}
+	return result.ColumnNames, result.Rows, nil
 }

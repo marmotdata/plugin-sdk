@@ -122,6 +122,13 @@ type RunHistoryEvent struct {
 	JobFacets    map[string]interface{} `json:"job_facets,omitempty"`
 }
 
+// SampleData is the wire shape of a FetchSampleData result: a set of
+// column names and the sampled rows.
+type SampleData struct {
+	ColumnNames []string        `json:"column_names"`
+	Rows        [][]interface{} `json:"rows"`
+}
+
 // DiscoveryResult contains everything a plugin discovered in one run.
 type DiscoveryResult struct {
 	Assets        []Asset           `json:"assets"`

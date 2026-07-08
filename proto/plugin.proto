@@ -11,6 +11,9 @@ service Source {
   rpc GetMeta(GetMetaRequest) returns (GetMetaResponse);
   rpc Validate(ValidateRequest) returns (ValidateResponse);
   rpc Discover(DiscoverRequest) returns (DiscoverResponse);
+  // FetchSampleData is optional; plugins whose source does not implement
+  // DataFetcher respond with UNIMPLEMENTED.
+  rpc FetchSampleData(FetchSampleDataRequest) returns (FetchSampleDataResponse);
 }
 
 message GetMetaRequest {}
@@ -37,5 +40,17 @@ message DiscoverRequest {
 
 message DiscoverResponse {
   // JSON-encoded pluginsdk.DiscoveryResult
+  bytes result_json = 1;
+}
+
+message FetchSampleDataRequest {
+  // JSON-encoded raw plugin config
+  bytes config_json = 1;
+  // JSON-encoded pluginsdk.Asset to fetch sample data for
+  bytes asset_json = 2;
+}
+
+message FetchSampleDataResponse {
+  // JSON-encoded pluginsdk.SampleData
   bytes result_json = 1;
 }

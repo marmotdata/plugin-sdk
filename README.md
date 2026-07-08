@@ -56,6 +56,8 @@ func main() {
 }
 ```
 
+If your `Source` also implements `DataFetcher`, Marmot can show sample rows on asset pages. It gets the asset and the plugin config, queries the source system, and returns column names and rows. `Serve` picks this up automatically, there is nothing to register.
+
 Build the binary with a `marmot-plugin-` name prefix and drop it in `~/.marmot/plugins` (or the directory set by `MARMOT_PLUGINS_DIR`). Marmot discovers it at startup, fetches its metadata, and registers it alongside the built-in plugins. Plugin processes are short-lived: the host spawns the binary per call and kills it when the call completes.
 
 See [marmot-plugin-gcs](https://github.com/marmotdata/marmot-plugin-gcs) for a complete real-world plugin.
@@ -66,7 +68,7 @@ See [marmot-plugin-gcs](https://github.com/marmotdata/marmot-plugin-gcs) for a c
 | --- | --- |
 | `pluginsdk` | `Source` and `Meta`, the plugin-facing types (`Asset`, `DiscoveryResult`, `LineageEdge`, ...), config helpers (`UnmarshalConfig`, `ValidateStruct`, `GenerateConfigSpec`, `InterpolateTags`), `Serve` for plugin binaries, and `Open` for hosts |
 | `mrn` | Build and parse Marmot Resource Names (`mrn://bucket/gcs/my-bucket`) |
-| `proto` | The gRPC wire protocol (`GetMeta`/`Validate`/`Discover`); payloads are JSON so the protocol stays stable while types evolve |
+| `proto` | The gRPC wire protocol (`GetMeta`/`Validate`/`Discover`/`FetchSampleData`); payloads are JSON so the protocol stays stable while types evolve |
 
 ## Config specs
 

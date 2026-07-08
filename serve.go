@@ -28,6 +28,8 @@ type ServeConfig struct {
 //	    })
 //	}
 func Serve(config *ServeConfig) {
+	_, config.Meta.SupportsDataPreview = config.Source.(DataFetcher)
+
 	if len(os.Args) > 1 && os.Args[1] == DumpMetadataFlag {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
