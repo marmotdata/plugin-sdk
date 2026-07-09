@@ -51,6 +51,19 @@ func (s *grpcServer) Discover(ctx context.Context, req *proto.DiscoverRequest) (
 		return nil, fmt.Errorf("unmarshaling config: %w", err)
 	}
 
+	// Plugin authors typically write Validate to parse the raw config
+	// and save the result on the Source (s.config = config), and write
+	// Discover to read s.config. That works when both methods run on
+	// one long-lived object, but that is not how Marmot calls plugins:
+	// for every RPC it starts a new plugin process, makes the one
+	// call, and kills the process. Validate and Discover therefore run
+	// in different processes on different Source instances, and the
+	// instance handling Discover has a nil s.config unless Validate
+	// runs again here first.
+	if _, err := s.source.Validate(config); err != nil {
+		return nil, err
+	}
+
 	result, err := s.source.Discover(ctx, config)
 	if err != nil {
 		return nil, err
