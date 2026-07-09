@@ -58,6 +58,20 @@ func main() {
 
 If your `Source` also implements `DataFetcher`, Marmot can show sample rows on asset pages. It gets the asset and the plugin config, queries the source system, and returns column names and rows. `Serve` picks this up automatically, there is nothing to register.
 
+The host spawns a fresh plugin process for every call, so `Discover` never shares an instance with an earlier `Validate` call. The SDK runs `Validate` before `Discover` in each process, so state your `Validate` sets on the `Source` (parsed config, computed limits) is always there when `Discover` runs.
+
+Use `ApplyDefaults` in `Validate` to fill fields from their `default:"..."` tags when the key is absent from the raw config, the same tags the settings form uses. Without it, defaults only apply to configs created through the Marmot UI.
+
+The `plugintest` package tests your built binary over the real wire protocol:
+
+```go
+func TestDiscover(t *testing.T) {
+    bin := plugintest.Build(t, "..") // plugin main package
+    result, err := bin.Discover(context.Background(), pluginsdk.RawConfig{...})
+    ...
+}
+```
+
 Build the binary with a `marmot-plugin-` name prefix and drop it in `~/.marmot/plugins` (or the directory set by `MARMOT_PLUGINS_DIR`). Marmot discovers it at startup, fetches its metadata, and registers it alongside the built-in plugins. Plugin processes are short-lived: the host spawns the binary per call and kills it when the call completes.
 
 See [marmot-plugin-gcs](https://github.com/marmotdata/marmot-plugin-gcs) for a complete real-world plugin.
