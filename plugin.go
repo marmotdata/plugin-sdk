@@ -37,7 +37,7 @@ type RemoteSource interface {
 	GetMeta(ctx context.Context) (*Meta, error)
 	Validate(ctx context.Context, config RawConfig) (RawConfig, error)
 	Discover(ctx context.Context, config RawConfig) (*DiscoveryResult, error)
-	FetchSampleData(ctx context.Context, config RawConfig, a *Asset) ([]string, [][]interface{}, error)
+	FetchSampleData(ctx context.Context, config RawConfig, a *Asset) ([]string, [][]any, error)
 }
 
 // sourcePlugin implements go-plugin's GRPCPlugin for the Source service.
@@ -54,6 +54,6 @@ func (p *sourcePlugin) GRPCServer(broker *goplugin.GRPCBroker, s *grpc.Server) e
 	return nil
 }
 
-func (p *sourcePlugin) GRPCClient(ctx context.Context, broker *goplugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
+func (p *sourcePlugin) GRPCClient(ctx context.Context, broker *goplugin.GRPCBroker, c *grpc.ClientConn) (any, error) {
 	return &grpcClient{client: proto.NewSourceClient(c)}, nil
 }

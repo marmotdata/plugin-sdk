@@ -37,11 +37,6 @@ func (a *AWSConfig) Validate() error {
 	return nil
 }
 
-type AWSPlugin struct {
-	AWSConfig  `json:",inline"`
-	BaseConfig `json:",inline"`
-}
-
 var ErrEndpointNotFound = fmt.Errorf("endpoint not found")
 
 func ExtractAWSConfig(rawConfig map[string]interface{}) (*AWSConfig, error) {

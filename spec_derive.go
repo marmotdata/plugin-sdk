@@ -69,54 +69,6 @@ func Placeholder(text string) FieldOverride {
 	return func(f *ConfigField) { f.Placeholder = text }
 }
 
-// Default sets the default value for the field.
-func Default(value interface{}) FieldOverride {
-	return func(f *ConfigField) { f.Default = value }
-}
-
-// Required marks the field as required, or clears the required flag
-// when passed false.
-func Required(required bool) FieldOverride {
-	return func(f *ConfigField) { f.Required = required }
-}
-
-// Description overrides the field's description shown in the UI.
-func Description(text string) FieldOverride {
-	return func(f *ConfigField) { f.Description = text }
-}
-
-// CloneConfigSpec deep-copies a config spec so it can be mutated without
-// affecting the original. DeriveSpec starts from a config type and
-// produces a fresh spec so most callers do not need this. It is
-// exported for advanced use where a spec is derived from another spec
-// rather than from a struct.
-func CloneConfigSpec(spec []ConfigField) []ConfigField {
-	clone := make([]ConfigField, len(spec))
-	for i, f := range spec {
-		clone[i] = f
-
-		if len(f.Options) > 0 {
-			clone[i].Options = make([]FieldOption, len(f.Options))
-			copy(clone[i].Options, f.Options)
-		}
-
-		if f.Validation != nil {
-			v := *f.Validation
-			clone[i].Validation = &v
-		}
-
-		if f.ShowWhen != nil {
-			sw := *f.ShowWhen
-			clone[i].ShowWhen = &sw
-		}
-
-		if len(f.Fields) > 0 {
-			clone[i].Fields = CloneConfigSpec(f.Fields)
-		}
-	}
-	return clone
-}
-
 func removeFields(spec []ConfigField, names []string) []ConfigField {
 	topLevel := make(map[string]bool)
 	nested := make(map[string][]string)
