@@ -4,16 +4,18 @@ import "time"
 
 // Asset is a discovered catalog asset.
 type Asset struct {
-	ParentMRN     *string                `json:"parent_mrn,omitempty"`
-	Name          *string                `json:"name,omitempty"`
-	Description   *string                `json:"description,omitempty"`
-	Type          string                 `json:"type"`
-	Providers     []string               `json:"providers"`
-	MRN           *string                `json:"mrn,omitempty"`
-	Schema        map[string]string      `json:"schema,omitempty"`
-	Metadata      map[string]any         `json:"metadata,omitempty"`
-	Sources       []AssetSource          `json:"sources,omitempty"`
-	Tags          []string               `json:"tags,omitempty"`
+	ParentMRN   *string           `json:"parent_mrn,omitempty"`
+	Name        *string           `json:"name,omitempty"`
+	Description *string           `json:"description,omitempty"`
+	Type        string            `json:"type"`
+	Providers   []string          `json:"providers"`
+	MRN         *string           `json:"mrn,omitempty"`
+	Schema      map[string]string `json:"schema,omitempty"`
+	Metadata    map[string]any    `json:"metadata,omitempty"`
+	Sources     []AssetSource     `json:"sources,omitempty"`
+	Tags        []string          `json:"tags,omitempty"`
+	// Terms are the Names of glossary terms assigned to this asset.
+	Terms         []string               `json:"terms,omitempty"`
 	Environments  map[string]Environment `json:"environments,omitempty"`
 	Query         *string                `json:"query,omitempty"`
 	QueryLanguage *string                `json:"query_language,omitempty"`

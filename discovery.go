@@ -7,4 +7,5 @@ type DiscoveryResult struct {
 	Documentation []Documentation   `json:"documentation"`
 	Statistics    []Statistic       `json:"statistics"`
 	RunHistory    []AssetRunHistory `json:"run_history,omitempty"`
+	GlossaryTerms []GlossaryTerm    `json:"glossary_terms,omitempty"`
 }
