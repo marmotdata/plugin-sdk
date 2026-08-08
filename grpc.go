@@ -159,7 +159,7 @@ func (c *grpcClient) Discover(ctx context.Context, config RawConfig) (*Discovery
 	return &result, nil
 }
 
-func (c *grpcClient) FetchSampleData(ctx context.Context, config RawConfig, a *Asset) ([]string, [][]interface{}, error) {
+func (c *grpcClient) FetchSampleData(ctx context.Context, config RawConfig, a *Asset) ([]string, [][]any, error) {
 	configData, err := json.Marshal(config)
 	if err != nil {
 		return nil, nil, fmt.Errorf("marshaling config: %w", err)

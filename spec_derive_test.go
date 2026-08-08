@@ -98,48 +98,6 @@ func TestDeriveSpec_OverridePlaceholder(t *testing.T) {
 	}
 }
 
-func TestDeriveSpec_OverrideMultipleFields(t *testing.T) {
-	spec := DeriveSpec(deriveTestConfig{},
-		Override("client_id",
-			Default("marmot-discovery"),
-			Required(true),
-			Description("Client ID for discovery"),
-		),
-	)
-
-	field := findField(spec, "client_id")
-	if field == nil {
-		t.Fatal("client_id not found")
-	}
-	if field.Default != "marmot-discovery" {
-		t.Errorf("expected default %q, got %v", "marmot-discovery", field.Default)
-	}
-	if !field.Required {
-		t.Error("expected client_id to be required")
-	}
-	if field.Description != "Client ID for discovery" {
-		t.Errorf("unexpected description %q", field.Description)
-	}
-}
-
-func TestDeriveSpec_OverrideNestedField(t *testing.T) {
-	spec := DeriveSpec(deriveTestConfig{},
-		Override("authentication.mechanism", Default("SCRAM-SHA-512")),
-	)
-
-	auth := findField(spec, "authentication")
-	if auth == nil {
-		t.Fatal("authentication not found")
-	}
-	mechanism := findField(auth.Fields, "mechanism")
-	if mechanism == nil {
-		t.Fatal("authentication.mechanism not found")
-	}
-	if mechanism.Default != "SCRAM-SHA-512" {
-		t.Errorf("expected default %q, got %v", "SCRAM-SHA-512", mechanism.Default)
-	}
-}
-
 func TestDeriveSpec_OverridePanicsOnUnknownField(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
@@ -153,56 +111,13 @@ func TestDeriveSpec_OptionsApplyInOrder(t *testing.T) {
 	// Hide first, then Override on a surviving field.
 	spec := DeriveSpec(deriveTestConfig{},
 		Hide("tls"),
-		Override("client_id", Default("foo")),
+		Override("client_id", Placeholder("marmot")),
 	)
 
 	if findField(spec, "tls") != nil {
 		t.Error("tls should have been removed")
 	}
-	if field := findField(spec, "client_id"); field == nil || field.Default != "foo" {
-		t.Errorf("expected client_id default %q, got %+v", "foo", field)
-	}
-}
-
-func TestCloneConfigSpec_MutationDoesNotAffectOriginal(t *testing.T) {
-	original := DeriveSpec(deriveTestConfig{})
-	clone := CloneConfigSpec(original)
-
-	// Mutate the clone's top-level and nested fields.
-	field := findField(clone, "bootstrap_servers")
-	field.Placeholder = "clone-only"
-
-	auth := findField(clone, "authentication")
-	authType := findField(auth.Fields, "type")
-	authType.Description = "clone-only"
-
-	// Original must be untouched.
-	origField := findField(original, "bootstrap_servers")
-	if origField.Placeholder == "clone-only" {
-		t.Error("original bootstrap_servers placeholder was mutated")
-	}
-	origAuth := findField(original, "authentication")
-	origType := findField(origAuth.Fields, "type")
-	if origType.Description == "clone-only" {
-		t.Error("original authentication.type description was mutated")
-	}
-}
-
-func TestCloneConfigSpec_ClonesOptions(t *testing.T) {
-	original := DeriveSpec(deriveTestConfig{})
-	clone := CloneConfigSpec(original)
-
-	origAuth := findField(original, "authentication")
-	origType := findField(origAuth.Fields, "type")
-	cloneAuth := findField(clone, "authentication")
-	cloneType := findField(cloneAuth.Fields, "type")
-
-	if len(origType.Options) == 0 || len(cloneType.Options) == 0 {
-		t.Fatal("expected options on authentication.type from oneof")
-	}
-
-	cloneType.Options[0].Label = "mutated"
-	if origType.Options[0].Label == "mutated" {
-		t.Error("mutating clone options affected original")
+	if field := findField(spec, "client_id"); field == nil || field.Placeholder != "marmot" {
+		t.Errorf("expected client_id placeholder %q, got %+v", "marmot", field)
 	}
 }

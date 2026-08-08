@@ -7,7 +7,6 @@ import (
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-	"sigs.k8s.io/yaml"
 )
 
 // GCPCredentials configures how a plugin authenticates to Google Cloud.
@@ -27,19 +26,6 @@ type GCPConfig struct {
 
 func (g *GCPConfig) Validate() error {
 	return nil
-}
-
-// ExtractGCPConfig pulls the GCP configuration out of a raw plugin config.
-func ExtractGCPConfig(rawConfig map[string]interface{}) (*GCPConfig, error) {
-	var cfg GCPConfig
-	configBytes, err := yaml.Marshal(rawConfig)
-	if err != nil {
-		return nil, fmt.Errorf("marshaling raw config: %w", err)
-	}
-	if err := yaml.Unmarshal(configBytes, &cfg); err != nil {
-		return nil, fmt.Errorf("unmarshaling into GCPConfig: %w", err)
-	}
-	return &cfg, nil
 }
 
 // TokenSource returns an OAuth2 token source for the given scopes. It

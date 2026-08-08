@@ -27,8 +27,8 @@ func (v ValidationErrors) Error() string {
 	return strings.Join(messages, "; ")
 }
 
-// GetValidator returns a configured validator instance
-func GetValidator() *validator.Validate {
+// newValidator returns a configured validator instance.
+func newValidator() *validator.Validate {
 	v := validator.New(validator.WithRequiredStructEnabled())
 
 	// Register custom tag name function to use json tags for field names
@@ -46,7 +46,7 @@ func GetValidator() *validator.Validate {
 
 // ValidateStruct validates a struct and returns user-friendly validation errors
 func ValidateStruct(s interface{}) error {
-	validate := GetValidator()
+	validate := newValidator()
 	err := validate.Struct(s)
 
 	if err == nil {
