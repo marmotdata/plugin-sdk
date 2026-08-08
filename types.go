@@ -59,6 +59,8 @@ type Asset struct {
 	Query         *string                `json:"query,omitempty"`
 	QueryLanguage *string                `json:"query_language,omitempty"`
 	ExternalLinks []AssetExternalLink    `json:"external_links,omitempty"`
+	// Terms are the Names of glossary terms assigned to this asset.
+	Terms []string `json:"terms,omitempty"`
 }
 
 // AssetSource records which source contributed an asset's properties.
@@ -129,6 +131,20 @@ type SampleData struct {
 	Rows        [][]interface{} `json:"rows"`
 }
 
+// GlossaryTerm is a business definition curated in the source system.
+// Marmot stores these as first-class terms rather than tags so they can
+// be browsed, nested and reused across assets.
+type GlossaryTerm struct {
+	Name        string `json:"name"`
+	Definition  string `json:"definition"`
+	Description string `json:"description,omitempty"`
+	// Parent is the Name of the term this one sits under, empty for a root.
+	Parent   string                 `json:"parent,omitempty"`
+	Synonyms []string               `json:"synonyms,omitempty"`
+	Tags     []string               `json:"tags,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+}
+
 // DiscoveryResult contains everything a plugin discovered in one run.
 type DiscoveryResult struct {
 	Assets        []Asset           `json:"assets"`
@@ -136,4 +152,5 @@ type DiscoveryResult struct {
 	Documentation []Documentation   `json:"documentation"`
 	Statistics    []Statistic       `json:"statistics"`
 	RunHistory    []AssetRunHistory `json:"run_history,omitempty"`
+	GlossaryTerms []GlossaryTerm    `json:"glossary_terms,omitempty"`
 }
