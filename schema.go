@@ -59,12 +59,12 @@ type Column struct {
 // flattens Column's fields into the same JSON object, so the view reads the
 // canonical fields while the extras are preserved in the Raw view:
 //
-//	type pgColumn struct {
+//	type clickhouseColumn struct {
 //		pluginsdk.Column
-//		ForeignKey string `json:"foreign_key,omitempty"`
-//		PII        bool   `json:"pii,omitempty"`
+//		Codec string `json:"codec,omitempty"`
+//		TTL   string `json:"ttl,omitempty"`
 //	}
-//	err := pluginsdk.SetColumns(asset, []pgColumn{ ... })
+//	err := pluginsdk.SetColumns(asset, []clickhouseColumn{ ... })
 //
 // A source whose columns do not map onto Column (no notion of nullability, or
 // one that already has its own column type) can pass a fully custom slice;
