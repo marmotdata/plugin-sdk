@@ -27,8 +27,8 @@ type Column struct {
 	ForeignKey bool `json:"is_foreign_key,omitempty"`
 	// PII marks personally identifiable data. Recorded for column-level lineage, not rendered yet.
 	PII bool `json:"is_pii,omitempty"`
-	// Comment is the column description.
-	Comment string `json:"comment,omitempty"`
+	// Description is the column description.
+	Description string `json:"description,omitempty"`
 	// Default is the column's default value or expression.
 	Default any `json:"default_expression,omitempty"`
 }

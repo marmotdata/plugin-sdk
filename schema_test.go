@@ -82,7 +82,7 @@ func TestSetColumnsOmitsUnsetOptionalFields(t *testing.T) {
 	assert.NotContains(t, cols[0], "is_sorting_key")
 	assert.NotContains(t, cols[0], "is_foreign_key")
 	assert.NotContains(t, cols[0], "is_pii")
-	assert.NotContains(t, cols[0], "comment")
+	assert.NotContains(t, cols[0], "description")
 	assert.NotContains(t, cols[0], "default_expression")
 }
 
@@ -105,13 +105,13 @@ func TestSetColumnsEmitsForeignKeyAndPII(t *testing.T) {
 func TestSetColumnsUsesCanonicalKeyNames(t *testing.T) {
 	var a Asset
 	require.NoError(t, SetColumns(&a, []Column{{
-		Name:       "id",
-		DataType:   "INTEGER",
-		Nullable:   false,
-		PrimaryKey: true,
-		SortingKey: true,
-		Comment:    "Surrogate key",
-		Default:    "nextval('seq')",
+		Name:        "id",
+		DataType:    "INTEGER",
+		Nullable:    false,
+		PrimaryKey:  true,
+		SortingKey:  true,
+		Description: "Surrogate key",
+		Default:     "nextval('seq')",
 	}}))
 
 	var cols []map[string]any
@@ -122,7 +122,7 @@ func TestSetColumnsUsesCanonicalKeyNames(t *testing.T) {
 	assert.Equal(t, "INTEGER", cols[0]["data_type"])
 	assert.Equal(t, true, cols[0]["is_primary_key"])
 	assert.Equal(t, true, cols[0]["is_sorting_key"])
-	assert.Equal(t, "Surrogate key", cols[0]["comment"])
+	assert.Equal(t, "Surrogate key", cols[0]["description"])
 	assert.Equal(t, "nextval('seq')", cols[0]["default_expression"])
 }
 
