@@ -80,8 +80,26 @@ func TestSetColumnsOmitsUnsetOptionalFields(t *testing.T) {
 
 	assert.NotContains(t, cols[0], "is_primary_key")
 	assert.NotContains(t, cols[0], "is_sorting_key")
+	assert.NotContains(t, cols[0], "is_foreign_key")
+	assert.NotContains(t, cols[0], "is_pii")
 	assert.NotContains(t, cols[0], "comment")
 	assert.NotContains(t, cols[0], "default_expression")
+}
+
+func TestSetColumnsEmitsForeignKeyAndPII(t *testing.T) {
+	var a Asset
+	require.NoError(t, SetColumns(&a, []Column{{
+		Name:       "user_id",
+		DataType:   "bigint",
+		ForeignKey: true,
+		PII:        true,
+	}}))
+
+	var cols []map[string]any
+	require.NoError(t, json.Unmarshal([]byte(a.Schema[schemaColumnsKey]), &cols))
+	require.Len(t, cols, 1)
+	assert.Equal(t, true, cols[0]["is_foreign_key"])
+	assert.Equal(t, true, cols[0]["is_pii"])
 }
 
 func TestSetColumnsUsesCanonicalKeyNames(t *testing.T) {

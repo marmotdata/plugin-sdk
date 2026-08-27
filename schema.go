@@ -8,17 +8,10 @@ import (
 // schemaColumnsKey is the Asset.Schema entry that holds the column list.
 const schemaColumnsKey = "columns"
 
-// Column is the canonical shape for one column of a table-shaped asset's
-// schema. It carries only the fields Marmot's "Formatted" schema view reads, so
-// filling one in renders correctly with no guesswork about key names.
-//
-// Column is a convenience, not a requirement. Embed it to add source-specific
-// fields, or pass a fully custom type to SetColumns when your source does not
-// fit these fields. See SetColumns for both patterns.
-//
-// Marmot recognizes a schema as a column list when the first element carries a
-// string column_name and a string data_type, so both are always emitted. Every
-// other field is omitted from the JSON when unset, except Nullable (see below).
+// Column is the canonical shape for a table column, filling one in renders
+// correctly in Marmot's schema view with no guesswork about key names. It is
+// not required: embed it to add source-specific fields, or pass a fully custom
+// type to SetColumns.
 type Column struct {
 	// Name is the column name. Required.
 	Name string `json:"column_name"`
@@ -33,6 +26,13 @@ type Column struct {
 	PrimaryKey bool `json:"is_primary_key,omitempty"`
 	// SortingKey adds a "Sorting Key" annotation when true.
 	SortingKey bool `json:"is_sorting_key,omitempty"`
+	// ForeignKey marks the column as a foreign key. Recorded ahead of
+	// column-level lineage; the schema view does not render it yet.
+	ForeignKey bool `json:"is_foreign_key,omitempty"`
+	// PII marks the column as holding personally identifiable information.
+	// Recorded ahead of column-level lineage and governance; the schema view
+	// does not render it yet.
+	PII bool `json:"is_pii,omitempty"`
 	// Comment is the column description.
 	Comment string `json:"comment,omitempty"`
 	// Default is the column's default value or expression, shown alongside it.
