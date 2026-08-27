@@ -30,3 +30,21 @@ func ExampleSetColumns_extend() {
 	// Output:
 	// [{"column_name":"id","data_type":"UInt64","is_nullable":false,"codec":"ZSTD"}]
 }
+
+// Pass a []any to mix a plain Column with an extended one in a single call.
+func ExampleSetColumns_mix() {
+	type clickhouseColumn struct {
+		Column
+		Codec string `json:"codec,omitempty"`
+	}
+
+	var asset Asset
+	_ = SetColumns(&asset, []any{
+		Column{Name: "id", DataType: "UInt64", PrimaryKey: true},
+		clickhouseColumn{Column: Column{Name: "created_at", DataType: "DateTime"}, Codec: "ZSTD"},
+	})
+
+	fmt.Println(asset.Schema["columns"])
+	// Output:
+	// [{"column_name":"id","data_type":"UInt64","is_nullable":false,"is_primary_key":true},{"column_name":"created_at","data_type":"DateTime","is_nullable":false,"codec":"ZSTD"}]
+}
