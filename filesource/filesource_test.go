@@ -196,6 +196,76 @@ func TestResolveFilePath_AutoDetectLocal(t *testing.T) {
 	}
 }
 
+func TestResolveOptionsListPrefixes(t *testing.T) {
+	tests := []struct {
+		name    string
+		subdirs []string
+		base    string
+		want    []string
+	}{
+		{
+			name: "no subdirs lists the whole prefix",
+			base: "tables/orders/",
+			want: []string{"tables/orders/"},
+		},
+		{
+			name:    "single subdir",
+			subdirs: []string{"_delta_log"},
+			base:    "tables/orders/",
+			want:    []string{"tables/orders/_delta_log/"},
+		},
+		{
+			name:    "subdir slashes are normalised",
+			subdirs: []string{"/_delta_log/"},
+			base:    "tables/orders/",
+			want:    []string{"tables/orders/_delta_log/"},
+		},
+		{
+			name:    "nested subdir",
+			subdirs: []string{"meta/schema"},
+			base:    "tables/orders/",
+			want:    []string{"tables/orders/meta/schema/"},
+		},
+		{
+			name:    "multiple subdirs",
+			subdirs: []string{"_delta_log", "_change_data"},
+			base:    "tables/orders/",
+			want:    []string{"tables/orders/_delta_log/", "tables/orders/_change_data/"},
+		},
+		{
+			name:    "empty subdir falls back to the whole prefix",
+			subdirs: []string{""},
+			base:    "tables/orders/",
+			want:    []string{"tables/orders/"},
+		},
+		{
+			name:    "bucket root base",
+			subdirs: []string{"_delta_log"},
+			base:    "",
+			want:    []string{"_delta_log/"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var ro resolveOptions
+			if tt.subdirs != nil {
+				WithSubdirs(tt.subdirs...)(&ro)
+			}
+
+			got := ro.listPrefixes(tt.base)
+			if len(got) != len(tt.want) {
+				t.Fatalf("listPrefixes(%q) = %v, want %v", tt.base, got, tt.want)
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("listPrefixes(%q)[%d] = %q, want %q", tt.base, i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
 func TestExtractFileSourceConfig(t *testing.T) {
 	rawConfig := map[string]interface{}{
 		"source_type": "s3",

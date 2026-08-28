@@ -48,9 +48,53 @@ type GitSourceConfig struct {
 	SSHKeyPath string `json:"ssh_key_path,omitempty" description:"Path to SSH private key for SSH auth"`
 }
 
+// Option adjusts how ResolveFilePath fetches a remote source.
+type Option func(*resolveOptions)
+
+type resolveOptions struct {
+	subdirs []string
+}
+
+// WithSubdirs restricts the download to the named subdirectories of the
+// resolved path. Plugins that read only part of a directory use it to avoid
+// pulling everything: a Delta Lake table holds gigabytes of data files next
+// to the small _delta_log the plugin actually reads.
+//
+// Passing it also means the path is a directory, so an S3 key is treated as
+// a prefix even without a trailing slash. Git sources clone the whole
+// repository either way, so the option has no effect on them.
+func WithSubdirs(dirs ...string) Option {
+	return func(o *resolveOptions) {
+		o.subdirs = append(o.subdirs, dirs...)
+	}
+}
+
+// listPrefixes returns the S3 prefixes to list under base. Listing each
+// wanted subdirectory separately keeps both the LIST calls and the downloads
+// off everything else under base, which for a Delta table is every data file.
+func (o *resolveOptions) listPrefixes(base string) []string {
+	if len(o.subdirs) == 0 {
+		return []string{base}
+	}
+	var prefixes []string
+	for _, dir := range o.subdirs {
+		dir = strings.Trim(dir, "/")
+		if dir == "" {
+			return []string{base}
+		}
+		prefixes = append(prefixes, base+dir+"/")
+	}
+	return prefixes
+}
+
 // ResolveFilePath resolves a path to a local filesystem path, S3 or git.
-func ResolveFilePath(ctx context.Context, fsc *FileSourceConfig, path string) (string, func(), error) {
+func ResolveFilePath(ctx context.Context, fsc *FileSourceConfig, path string, opts ...Option) (string, func(), error) {
 	noop := func() {}
+
+	var ro resolveOptions
+	for _, opt := range opts {
+		opt(&ro)
+	}
 
 	var sourceType string
 	if fsc != nil && fsc.SourceType != "" {
@@ -61,7 +105,7 @@ func ResolveFilePath(ctx context.Context, fsc *FileSourceConfig, path string) (s
 
 	switch sourceType {
 	case "s3":
-		return resolveS3Path(ctx, fsc, path)
+		return resolveS3Path(ctx, fsc, path, &ro)
 	case "git":
 		return resolveGitPath(ctx, fsc, path)
 	default:
@@ -137,7 +181,7 @@ func ExtractFileSourceConfig(rawConfig map[string]interface{}) (*FileSourceConfi
 	return &fsc, nil
 }
 
-func resolveS3Path(ctx context.Context, fsc *FileSourceConfig, path string) (string, func(), error) {
+func resolveS3Path(ctx context.Context, fsc *FileSourceConfig, path string, ro *resolveOptions) (string, func(), error) {
 	noop := func() {}
 
 	var creds pluginsdk.AWSCredentials
@@ -178,7 +222,7 @@ func resolveS3Path(ctx context.Context, fsc *FileSourceConfig, path string) (str
 		}
 	}
 
-	if key != "" && !strings.HasSuffix(key, "/") {
+	if key != "" && !strings.HasSuffix(key, "/") && len(ro.subdirs) == 0 {
 		// Single file download
 		localPath := filepath.Join(tmpDir, filepath.Base(key))
 		if err := downloadS3Object(ctx, client, bucket, key, localPath); err != nil {
@@ -189,7 +233,7 @@ func resolveS3Path(ctx context.Context, fsc *FileSourceConfig, path string) (str
 	}
 
 	// Prefix/directory download
-	if err := downloadS3Prefix(ctx, client, bucket, key, tmpDir); err != nil {
+	if err := downloadS3Prefix(ctx, client, bucket, key, tmpDir, ro); err != nil {
 		cleanup()
 		return "", noop, fmt.Errorf("downloading s3://%s/%s: %w", bucket, key, err)
 	}
@@ -225,32 +269,39 @@ func downloadS3Object(ctx context.Context, client *s3.Client, bucket, key, local
 	return nil
 }
 
-func downloadS3Prefix(ctx context.Context, client *s3.Client, bucket, prefix, tmpDir string) error {
-	paginator := s3.NewListObjectsV2Paginator(client, &s3.ListObjectsV2Input{
-		Bucket: aws.String(bucket),
-		Prefix: aws.String(prefix),
-	})
+func downloadS3Prefix(ctx context.Context, client *s3.Client, bucket, prefix, tmpDir string, ro *resolveOptions) error {
+	base := prefix
+	if base != "" && !strings.HasSuffix(base, "/") {
+		base += "/"
+	}
 
-	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(ctx)
-		if err != nil {
-			return fmt.Errorf("listing objects: %w", err)
-		}
+	for _, listPrefix := range ro.listPrefixes(base) {
+		paginator := s3.NewListObjectsV2Paginator(client, &s3.ListObjectsV2Input{
+			Bucket: aws.String(bucket),
+			Prefix: aws.String(listPrefix),
+		})
 
-		for _, obj := range page.Contents {
-			if obj.Key == nil {
-				continue
-			}
-			// Preserve directory structure relative to prefix
-			relPath := strings.TrimPrefix(*obj.Key, prefix)
-			relPath = strings.TrimPrefix(relPath, "/")
-			if relPath == "" {
-				continue
+		for paginator.HasMorePages() {
+			page, err := paginator.NextPage(ctx)
+			if err != nil {
+				return fmt.Errorf("listing objects: %w", err)
 			}
 
-			localPath := filepath.Join(tmpDir, relPath)
-			if err := downloadS3Object(ctx, client, bucket, *obj.Key, localPath); err != nil {
-				return err
+			for _, obj := range page.Contents {
+				if obj.Key == nil {
+					continue
+				}
+				// Preserve directory structure relative to the base prefix
+				relPath := strings.TrimPrefix(*obj.Key, base)
+				// Skip the empty key and directory markers, which are not files
+				if relPath == "" || strings.HasSuffix(relPath, "/") {
+					continue
+				}
+
+				localPath := filepath.Join(tmpDir, relPath)
+				if err := downloadS3Object(ctx, client, bucket, *obj.Key, localPath); err != nil {
+					return err
+				}
 			}
 		}
 	}
