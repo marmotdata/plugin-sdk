@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.30
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.105.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.45.0
+	github.com/bytebase/bytebase v1.0.1-0.20260828145248-a85f6cb41952
 	github.com/go-git/go-git/v5 v5.19.1
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/hashicorp/go-hclog v1.6.3
@@ -58,7 +59,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.33.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.38.0 // indirect
 	github.com/aws/smithy-go v1.27.3 // indirect
-	github.com/bytebase/bytebase v1.0.1-0.20260828145248-a85f6cb41952
 	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
