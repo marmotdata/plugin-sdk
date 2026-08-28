@@ -21,28 +21,12 @@ import (
 // defaultParseTimeout mirrors DataHub's 10-second cooperative timeout for sqlglot: long enough for real queries but short enough that a pathological input cannot stall ingest.
 const defaultParseTimeout = 10 * time.Second
 
-// ExtractRequest carries the SQL plus the parser context: DefaultDatabase and DefaultSchema seed name resolution for unqualified references and Sources supplies the schemas needed for SELECT * expansion and column disambiguation.
-type ExtractRequest struct {
-	SQL             string
-	Dialect         string
-	DefaultDatabase string
-	DefaultSchema   string
-	Sources         []ExtractSource
-}
-
-// ExtractSource is one table the parser may reference; MRN is opaque to the extractor and only used by the caller to attribute derived edges.
-type ExtractSource struct {
-	MRN      string
-	Database string
-	Schema   string
-	Table    string
-	Columns  map[string]string
-}
-
 // Extractor derives column-level lineage from a SQL query and returns edges keyed by source-table MRN so callers can demux them onto the correct LineageEdge; safe for concurrent use.
 type Extractor struct {
 	timeout time.Duration
 }
+
+var _ pluginsdk.ColumnLineageExtractor = (*Extractor)(nil)
 
 // Option configures an Extractor.
 type Option func(*Extractor)
@@ -69,7 +53,7 @@ var dialectToEngine = map[string]storepb.Engine{
 }
 
 // Extract runs the extractor and returns column edges keyed by source-table MRN; parse failures return (nil, nil) so callers can fall back to table-only lineage.
-func (e *Extractor) Extract(ctx context.Context, req ExtractRequest) (map[string][]pluginsdk.ColumnEdge, error) {
+func (e *Extractor) Extract(ctx context.Context, req pluginsdk.ExtractRequest) (map[string][]pluginsdk.ColumnEdge, error) {
 	if req.SQL == "" {
 		return nil, nil
 	}
@@ -131,7 +115,7 @@ func safeGetQuerySpan(ctx context.Context, engine storepb.Engine, gCtx base.GetQ
 type tableKey struct{ schema, table string }
 
 // buildDatabaseMetadata translates ExtractRequest.Sources into the storepb shape Bytebase expects and returns a lookup used later to attribute derived edges back to a source MRN.
-func buildDatabaseMetadata(req ExtractRequest, engine storepb.Engine) (*model.DatabaseMetadata, map[tableKey]string) {
+func buildDatabaseMetadata(req pluginsdk.ExtractRequest, engine storepb.Engine) (*model.DatabaseMetadata, map[tableKey]string) {
 	schemas := map[string]map[string]*storepb.TableMetadata{}
 	tableToMRN := map[tableKey]string{}
 

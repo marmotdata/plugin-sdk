@@ -1,10 +1,10 @@
-module github.com/marmotdata/plugin-sdk/sql-lineage
+module github.com/marmotdata/plugin-sdk/lineage/sql
 
 go 1.26.5
 
 require (
 	github.com/bytebase/bytebase v1.0.1-0.20260828145248-a85f6cb41952
-	github.com/marmotdata/plugin-sdk v0.0.0-00010101000000-000000000000
+	github.com/marmotdata/plugin-sdk v0.0.0-20260828112447-5043b82394fb
 	github.com/rs/zerolog v1.35.1
 )
 
@@ -70,6 +70,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
-
-// Local dev against the sibling plugin-sdk module in the same repo.
-replace github.com/marmotdata/plugin-sdk => ..
