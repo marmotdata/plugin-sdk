@@ -5,11 +5,11 @@ import (
 )
 
 type deriveTestConfig struct {
-	BootstrapServers string             `json:"bootstrap_servers" description:"Bootstrap servers" validate:"required"`
-	ClientID         string             `json:"client_id" description:"Client ID"`
-	Authentication   *deriveAuthConfig  `json:"authentication,omitempty" description:"Auth"`
-	TLS              *deriveTLSConfig   `json:"tls,omitempty" description:"TLS"`
-	ConsumerConfig   map[string]string  `json:"consumer_config,omitempty" description:"Consumer config"`
+	BootstrapServers string            `json:"bootstrap_servers" description:"Bootstrap servers" validate:"required"`
+	ClientID         string            `json:"client_id" description:"Client ID"`
+	Authentication   *deriveAuthConfig `json:"authentication,omitempty" description:"Auth"`
+	TLS              *deriveTLSConfig  `json:"tls,omitempty" description:"TLS"`
+	ConsumerConfig   map[string]string `json:"consumer_config,omitempty" description:"Consumer config"`
 }
 
 type deriveAuthConfig struct {
