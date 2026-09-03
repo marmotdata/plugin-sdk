@@ -9,11 +9,13 @@ import (
 )
 
 // PluginProcess is a handle to a running plugin process, created by the
-// Marmot host with Open. Callers must Kill it when done; plugin
-// processes are meant to be short-lived (open, call, kill).
+// Marmot host with Open. Callers must Kill it when done. Discovery hosts
+// treat processes as short-lived (open, call, kill) while the data plane
+// keeps query-capable processes alive and checks them with Ping.
 type PluginProcess struct {
-	client *goplugin.Client
-	Source RemoteSource
+	client   *goplugin.Client
+	protocol goplugin.ClientProtocol
+	Source   RemoteSource
 }
 
 // Open launches the plugin binary at path and connects to it over gRPC.
@@ -50,10 +52,20 @@ func Open(path string, logger hclog.Logger) (*PluginProcess, error) {
 		return nil, fmt.Errorf("plugin %s does not implement the source protocol", path)
 	}
 
-	return &PluginProcess{client: client, Source: source}, nil
+	return &PluginProcess{client: client, protocol: rpcClient, Source: source}, nil
 }
 
 // Kill terminates the plugin process.
 func (p *PluginProcess) Kill() {
 	p.client.Kill()
+}
+
+// Ping checks that the plugin process is still alive and serving.
+func (p *PluginProcess) Ping() error {
+	return p.protocol.Ping()
+}
+
+// Exited reports whether the plugin process has terminated.
+func (p *PluginProcess) Exited() bool {
+	return p.client.Exited()
 }
