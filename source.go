@@ -21,8 +21,10 @@ type DataFetcher interface {
 // information, and the config spec used to render its settings form.
 // Status is one of "stable", "beta", or "experimental". Features lists
 // the asset kinds the plugin produces (e.g. "Assets", "Lineage", "Run
-// History"). SupportsDataPreview is set by Serve when the plugin's
-// Source implements DataFetcher; plugin authors never set it.
+// History"). AssetSchemas documents the metadata the plugin attaches to
+// the assets it discovers; build them with AssetSchemaOf.
+// SupportsDataPreview is set by Serve when the plugin's Source
+// implements DataFetcher; plugin authors never set it.
 type Meta struct {
 	ID                  string        `json:"id"`
 	Name                string        `json:"name"`
@@ -32,5 +34,6 @@ type Meta struct {
 	Status              string        `json:"status"`
 	Features            []string      `json:"features,omitempty"`
 	ConfigSpec          []ConfigField `json:"config_spec"`
+	AssetSchemas        []AssetSchema `json:"asset_schemas,omitempty"`
 	SupportsDataPreview bool          `json:"supports_data_preview,omitempty"`
 }
