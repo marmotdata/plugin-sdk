@@ -18,7 +18,7 @@ type AssetField struct {
 	Description string `json:"description,omitempty"`
 }
 
-// DeriveAssetSchema documents the metadata a plugin attaches to an asset.
+// AssetSchemaOf documents the metadata a plugin attaches to an asset.
 // Fields come from the struct's `metadata:"..."` and `description:"..."` tags;
 // untagged fields are left out. Assign the result to Meta.AssetSchemas:
 //
