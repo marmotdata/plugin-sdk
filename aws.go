@@ -21,7 +21,8 @@ type AWSCredentials struct {
 	Secret         string `json:"secret,omitempty" description:"AWS secret access key" sensitive:"true"`
 	Token          string `json:"token,omitempty" description:"AWS session token" sensitive:"true"`
 	Profile        string `json:"profile,omitempty" description:"AWS profile to use from shared credentials file"`
-	Role           string `json:"role,omitempty" description:"AWS IAM role ARN to assume"`
+	RoleARN        string `json:"role_arn,omitempty" label:"Role ARN (web identity)" description:"IAM role to assume with the Marmot identity token (AssumeRoleWithWebIdentity); its trust policy names the Marmot issuer as an OIDC provider. Setting it federates: no keys are needed, and region is required. role, if also set, is assumed on top of it"`
+	Role           string `json:"role,omitempty" description:"AWS IAM role ARN to assume with AssumeRole from the base credentials (static keys, a profile, the default chain, or role_arn)"`
 	RoleExternalID string `json:"role_external_id,omitempty" description:"External ID for cross-account role assumption"`
 	Region         string `json:"region,omitempty" description:"AWS region for services"`
 	Endpoint       string `json:"endpoint,omitempty" description:"Custom endpoint URL for AWS services" validate:"omitempty,url"`
@@ -34,6 +35,56 @@ type AWSConfig struct {
 }
 
 func (a *AWSConfig) Validate() error {
+	return nil
+}
+
+// awsDefaultAudience is what an IAM OIDC identity provider expects as
+// client id unless registered with another.
+const awsDefaultAudience = "sts.amazonaws.com"
+
+// awsSessionName names the assumed-role session. CloudTrail records the
+// token's subject alongside it as SubjectFromWebIdentityToken.
+const awsSessionName = "marmot"
+
+var awsRoleARNPattern = regexp.MustCompile(`^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:role/.+$`)
+
+// Federate applies AWSCredentials.Federate to the embedded credentials.
+func (a *AWSConfig) Federate(raw RawConfig) error {
+	return a.Credentials.Federate(raw)
+}
+
+// Federated reports whether the credentials exchange a Marmot identity
+// token rather than use keys, a profile or the default chain.
+func (c *AWSCredentials) Federated() bool {
+	return c.RoleARN != ""
+}
+
+// Federate checks the federation fields and derives the token audience
+// into raw, the config Validate returns to the host. Call it from
+// Validate after UnmarshalConfig. An audience alone is refused: it is
+// the host's signal to mint, which only a role can exchange. A role
+// excludes static keys and a profile: the point is to have none.
+func (c *AWSCredentials) Federate(raw RawConfig) error {
+	audience := Audience(raw)
+	if c.RoleARN == "" {
+		if audience != "" {
+			return validationError("audience", "audience needs role_arn; without a role the plugin uses the keys, profile or default chain it names")
+		}
+		return nil
+	}
+	if !awsRoleARNPattern.MatchString(c.RoleARN) {
+		return validationError("role_arn", "role_arn must be an IAM role ARN: arn:aws:iam::<account>:role/<name>")
+	}
+	if c.ID != "" || c.Secret != "" || c.Token != "" || c.Profile != "" {
+		return validationError("role_arn", "role_arn excludes static keys and a profile; a federated pipeline needs no key")
+	}
+	if c.Region == "" {
+		return validationError("region", "region is required with role_arn; the STS exchange and the service calls are regional")
+	}
+	if audience == "" {
+		audience = awsDefaultAudience
+	}
+	SetAudience(raw, audience)
 	return nil
 }
 
@@ -122,7 +173,12 @@ func (a *AWSConfig) NewAWSConfig(ctx context.Context) (aws.Config, error) {
 		opts = append(opts, config.WithRegion(a.Credentials.Region))
 	}
 
-	if a.Credentials.UseDefault || (a.Credentials.ID == "" && a.Credentials.Profile == "") {
+	if a.Credentials.RoleARN != "" {
+		// Federated: the default chain is not consulted, even if it
+		// would resolve. The web identity provider goes in below, once
+		// the config exists to build an STS client from.
+		opts = append(opts, config.WithCredentialsProvider(aws.AnonymousCredentials{}))
+	} else if a.Credentials.UseDefault || (a.Credentials.ID == "" && a.Credentials.Profile == "") {
 		if a.Credentials.Profile != "" {
 			opts = append(opts, config.WithSharedConfigProfile(a.Credentials.Profile))
 		}
@@ -144,6 +200,14 @@ func (a *AWSConfig) NewAWSConfig(ctx context.Context) (aws.Config, error) {
 	cfg, err := config.LoadDefaultConfig(ctx, opts...)
 	if err != nil {
 		return aws.Config{}, fmt.Errorf("loading AWS config: %w", err)
+	}
+
+	if a.Credentials.RoleARN != "" {
+		provider, err := a.federatedCredentials(ctx, cfg)
+		if err != nil {
+			return aws.Config{}, err
+		}
+		cfg.Credentials = provider
 	}
 
 	if a.Credentials.Role != "" {
@@ -216,4 +280,22 @@ func ShouldIncludeResource(name string, filter Filter) bool {
 	}
 
 	return false
+}
+
+// federatedCredentials returns a cached provider that exchanges the
+// Marmot identity token the host left in IdentityTokenFile for the
+// role's credentials, and reads the file again at every refresh.
+// AssumeRoleWithWebIdentity is unsigned, so the STS client runs
+// anonymously.
+func (a *AWSConfig) federatedCredentials(ctx context.Context, cfg aws.Config) (aws.CredentialsProvider, error) {
+	file, ok := IdentityTokenFile(ctx)
+	if !ok {
+		return nil, ErrNoIdentityToken
+	}
+	stsCfg := cfg
+	stsCfg.Credentials = aws.AnonymousCredentials{}
+	provider := stscreds.NewWebIdentityRoleProvider(sts.NewFromConfig(stsCfg), a.Credentials.RoleARN, stscreds.IdentityTokenFile(file), func(o *stscreds.WebIdentityRoleOptions) {
+		o.RoleSessionName = awsSessionName
+	})
+	return aws.NewCredentialsCache(provider), nil
 }

@@ -36,6 +36,10 @@ message ValidateResponse {
 message DiscoverRequest {
   // JSON-encoded raw plugin config
   bytes config_json = 1;
+  // Path of a file holding the Marmot identity token minted for this
+  // call, set when the config federates (pluginsdk.Federated). The host
+  // rewrites the file while the call runs and removes it afterwards.
+  string identity_token_file = 2;
 }
 
 message DiscoverResponse {
@@ -48,6 +52,8 @@ message FetchSampleDataRequest {
   bytes config_json = 1;
   // JSON-encoded pluginsdk.Asset to fetch sample data for
   bytes asset_json = 2;
+  // As DiscoverRequest.identity_token_file.
+  string identity_token_file = 3;
 }
 
 message FetchSampleDataResponse {

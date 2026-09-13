@@ -60,7 +60,15 @@ func (s *grpcServer) Discover(ctx context.Context, req *proto.DiscoverRequest) (
 	// in different processes on different Source instances, and the
 	// instance handling Discover has a nil s.config unless Validate
 	// runs again here first.
-	if _, err := s.source.Validate(config); err != nil {
+	validated, err := s.source.Validate(config)
+	if err != nil {
+		return nil, err
+	}
+	if validated == nil {
+		validated = config
+	}
+	ctx, err = withIdentity(ctx, validated, req.IdentityTokenFile)
+	if err != nil {
 		return nil, err
 	}
 
@@ -90,6 +98,11 @@ func (s *grpcServer) FetchSampleData(ctx context.Context, req *proto.FetchSample
 	var a Asset
 	if err := json.Unmarshal(req.AssetJson, &a); err != nil {
 		return nil, fmt.Errorf("unmarshaling asset: %w", err)
+	}
+
+	ctx, err := withIdentity(ctx, config, req.IdentityTokenFile)
+	if err != nil {
+		return nil, err
 	}
 
 	columnNames, rows, err := fetcher.FetchSampleData(ctx, config, &a)
@@ -147,7 +160,15 @@ func (c *grpcClient) Discover(ctx context.Context, config RawConfig) (*Discovery
 		return nil, fmt.Errorf("marshaling config: %w", err)
 	}
 
-	resp, err := c.client.Discover(ctx, &proto.DiscoverRequest{ConfigJson: data})
+	tokenFile, stop, err := identityFor(ctx, config)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.client.Discover(ctx, &proto.DiscoverRequest{ConfigJson: data, IdentityTokenFile: tokenFile})
+	if stopErr := stop(); stopErr != nil && err != nil {
+		// A stale token is the likeliest cause of a late failure.
+		err = fmt.Errorf("%w (%v)", err, stopErr)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -170,10 +191,18 @@ func (c *grpcClient) FetchSampleData(ctx context.Context, config RawConfig, a *A
 		return nil, nil, fmt.Errorf("marshaling asset: %w", err)
 	}
 
+	tokenFile, stop, err := identityFor(ctx, config)
+	if err != nil {
+		return nil, nil, err
+	}
 	resp, err := c.client.FetchSampleData(ctx, &proto.FetchSampleDataRequest{
-		ConfigJson: configData,
-		AssetJson:  assetData,
+		ConfigJson:        configData,
+		AssetJson:         assetData,
+		IdentityTokenFile: tokenFile,
 	})
+	if stopErr := stop(); stopErr != nil && err != nil {
+		err = fmt.Errorf("%w (%v)", err, stopErr)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
@@ -183,4 +212,17 @@ func (c *grpcClient) FetchSampleData(ctx context.Context, config RawConfig, a *A
 		return nil, nil, fmt.Errorf("unmarshaling sample data: %w", err)
 	}
 	return result.ColumnNames, result.Rows, nil
+}
+
+// withIdentity attaches the token file the host minted for this call.
+// A federated config that arrived without one is refused here, before
+// the plugin builds a credential that would fail less clearly.
+func withIdentity(ctx context.Context, config RawConfig, file string) (context.Context, error) {
+	if file == "" {
+		if Federated(config) {
+			return ctx, fmt.Errorf("%w: the host sent none for audience %q", ErrNoIdentityToken, Audience(config))
+		}
+		return ctx, nil
+	}
+	return WithIdentityTokenFile(ctx, file), nil
 }
