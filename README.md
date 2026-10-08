@@ -61,17 +61,7 @@ Build the binary with a `marmot-plugin-` name prefix and drop it in `~/.marmot/p
 
 A `Source` can optionally implement `DataFetcher` to power sample-row previews on asset pages; `Serve` detects it automatically. Test your built binary over the real wire protocol with the `plugintest` package.
 
-See [marmot-plugin-gcs](https://github.com/marmotdata/marmot-plugin-gcs) for a complete real-world plugin, and [Creating a Marmot Plugin](https://marmotdata.io/docs/next/Develop/creating-plugins) for a step-by-step guide.
-
-## The packages
-
-| Package | Contents |
-| --- | --- |
-| `pluginsdk` | `Source`, `DataFetcher`, and `Meta`; the plugin-facing types (`Asset`, `DiscoveryResult`, `LineageEdge`, ...); config helpers (`UnmarshalConfig`, `ApplyDefaults`, `ValidateStruct`, `GenerateConfigSpec`, `InterpolateTags`); AWS helpers; `Serve` for plugin binaries and `Open` for hosts |
-| `filesource` | Resolve file paths from local disk, `s3://bucket/prefix`, or `git::` URLs into a local directory |
-| `mrn` | Build and parse Marmot Resource Names (`mrn://bucket/gcs/my-bucket`) |
-| `plugintest` | End-to-end test helpers that run a built plugin binary over the wire protocol |
-| `proto` | The gRPC wire protocol (`GetMeta`/`Validate`/`Discover`/`FetchSampleData`); payloads are JSON so the protocol stays stable while types evolve |
+See [Creating a Marmot Plugin](https://marmotdata.io/docs/next/Develop/creating-plugins) for a step-by-step guide.
 
 ## Config specs
 
