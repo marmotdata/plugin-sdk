@@ -30,8 +30,8 @@ type AWSCredentials struct {
 
 type AWSConfig struct {
 	Credentials    AWSCredentials `json:"credentials" description:"AWS credentials configuration"`
-	TagsToMetadata bool           `json:"tags_to_metadata,omitempty" description:"Convert AWS tags to Marmot metadata"`
-	IncludeTags    []string       `json:"include_tags,omitempty" description:"List of AWS tags to include as metadata. By default, all tags are included."`
+	TagsToMetadata bool           `json:"tags_to_metadata,omitempty" group:"Discovery" description:"Convert AWS tags to Marmot metadata"`
+	IncludeTags    []string       `json:"include_tags,omitempty" group:"Discovery" description:"List of AWS tags to include as metadata. By default, all tags are included."`
 }
 
 func (a *AWSConfig) Validate() error {

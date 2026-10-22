@@ -38,6 +38,8 @@ type ConfigField struct {
 	IsArray     bool          `json:"is_array,omitempty"`
 	ShowWhen    *ShowWhen     `json:"show_when,omitempty"`
 	Hidden      bool          `json:"hidden,omitempty"`
+	// Group names the section a field belongs to in the UI, such as "Authentication" or "Advanced"; fields without one are shown first and each group renders as its own collapsed section
+	Group string `json:"group,omitempty"`
 }
 
 type FieldOption struct {
@@ -55,11 +57,22 @@ type Validation struct {
 
 // GenerateConfigSpec builds a config spec from a plugin config struct
 // using reflection over its json/description/validate/... struct tags.
+//
+// A `group:"<label>"` tag puts a field in a named UI section. On an
+// inline embedded struct the tag applies to every field inside it that
+// does not set its own. Leave the fields needed to connect untagged so
+// they are shown first, and use these labels so sections read the same
+// across plugins:
+//
+//   - "Authentication": alternative sign-in methods, tokens and TLS
+//   - "Discovery": what to discover and which resources to include or skip
+//   - "Advanced": tuning such as page sizes, limits, timeouts and statistics
+//   - "AI enrichment": settings that call an AI service during discovery
 func GenerateConfigSpec(configType interface{}) []ConfigField {
-	return generateConfigSpecRecursive(configType, "")
+	return generateConfigSpecRecursive(configType, "", "")
 }
 
-func generateConfigSpecRecursive(configType interface{}, prefix string) []ConfigField {
+func generateConfigSpecRecursive(configType interface{}, prefix, inheritedGroup string) []ConfigField {
 	var fields []ConfigField
 
 	t := reflect.TypeOf(configType)
@@ -81,7 +94,11 @@ func generateConfigSpecRecursive(configType interface{}, prefix string) []Config
 
 			if embeddedType.Kind() == reflect.Struct {
 				embeddedInstance := reflect.New(embeddedType).Interface()
-				embeddedFields := generateConfigSpecRecursive(embeddedInstance, prefix)
+				group := field.Tag.Get("group")
+				if group == "" {
+					group = inheritedGroup
+				}
+				embeddedFields := generateConfigSpecRecursive(embeddedInstance, prefix, group)
 				fields = append(fields, embeddedFields...)
 			}
 			continue
@@ -115,7 +132,13 @@ func generateConfigSpecRecursive(configType interface{}, prefix string) []Config
 			label = toLabel(jsonName)
 		}
 
+		group := field.Tag.Get("group")
+		if group == "" {
+			group = inheritedGroup
+		}
+
 		configField := ConfigField{
+			Group:       group,
 			Name:        jsonName,
 			Type:        fieldType,
 			Label:       label,
@@ -162,11 +185,11 @@ func generateConfigSpecRecursive(configType interface{}, prefix string) []Config
 				if elemType.Kind() == reflect.Struct {
 					configField.IsArray = true
 					nestedInstance := reflect.New(elemType).Interface()
-					configField.Fields = generateConfigSpecRecursive(nestedInstance, prefix+jsonName+".")
+					configField.Fields = generateConfigSpecRecursive(nestedInstance, prefix+jsonName+".", "")
 				}
 			} else if nestedType.Kind() == reflect.Struct {
 				nestedInstance := reflect.New(nestedType).Interface()
-				configField.Fields = generateConfigSpecRecursive(nestedInstance, prefix+jsonName+".")
+				configField.Fields = generateConfigSpecRecursive(nestedInstance, prefix+jsonName+".", "")
 			}
 		}
 

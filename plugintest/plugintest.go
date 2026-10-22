@@ -13,6 +13,8 @@ package plugintest
 
 import (
 	"context"
+	"errors"
+	"io"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -87,6 +89,44 @@ func (b Binary) FetchSampleData(ctx context.Context, config pluginsdk.RawConfig,
 	return process.Source.FetchSampleData(ctx, config, a)
 }
 
+// Query launches the binary, plans the statement and then executes it over
+// the wire, collecting every streamed chunk. Plugins whose Source does not
+// implement Querier fail with an Unimplemented gRPC status.
+func (b Binary) Query(ctx context.Context, config pluginsdk.RawConfig, req pluginsdk.QueryRequest) (*pluginsdk.QueryPlan, []pluginsdk.QueryResultChunk, error) {
+	process, err := b.open()
+	if err != nil {
+		return nil, nil, err
+	}
+	defer process.Kill()
+
+	plan, err := process.Source.PlanQuery(ctx, config, req)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	stream, err := process.Source.ExecuteQuery(ctx, config, req)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer stream.Close()
+
+	var chunks []pluginsdk.QueryResultChunk
+	for {
+		chunk, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			return plan, chunks, nil
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+		chunks = append(chunks, *chunk)
+	}
+}
+
 func (b Binary) open() (*pluginsdk.PluginProcess, error) {
-	return pluginsdk.Open(b.Path, hclog.NewNullLogger())
+	sum, err := pluginsdk.HashBinary(b.Path)
+	if err != nil {
+		return nil, err
+	}
+	return pluginsdk.Open(b.Path, sum, hclog.NewNullLogger())
 }

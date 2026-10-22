@@ -26,7 +26,7 @@ import (
 //	    pluginsdk.GCPConfig  `json:",inline"`
 //	}
 type Federation struct {
-	Audience string `json:"audience,omitempty" label:"Audience" description:"Audience of the Marmot identity token. Derived from the credentials' federation settings; set it only when the cloud side expects another"`
+	Audience string `json:"audience,omitempty" group:"Authentication" label:"Audience" description:"Audience of the Marmot identity token. Derived from the credentials' federation settings; set it only when the cloud side expects another"`
 }
 
 // Federated reports whether a config asks for identity tokens. It reads
