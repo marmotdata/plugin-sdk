@@ -74,6 +74,8 @@ type QueryResultChunk struct {
 // SupportsDataPreview and SupportsQuery are set by Serve when the
 // plugin's Source implements DataFetcher or Querier; plugin authors
 // never set them.
+//
+// MarmotVersion is the semver constraint on the Marmot releases the plugin works with, e.g. ">=0.14.0"; leave it empty to support every release that speaks ProtocolVersion. Prefer a lower bound only: a breaking change to the host interface is a protocol bump, not an upper bound. ProtocolVersion is set by Serve.
 type Meta struct {
 	ID                  string        `json:"id"`
 	Name                string        `json:"name"`
@@ -86,4 +88,6 @@ type Meta struct {
 	AssetSchemas        []AssetSchema `json:"asset_schemas,omitempty"`
 	SupportsDataPreview bool          `json:"supports_data_preview,omitempty"`
 	SupportsQuery       bool          `json:"supports_query,omitempty"`
+	MarmotVersion       string        `json:"marmot_version,omitempty"`
+	ProtocolVersion     int           `json:"protocol_version,omitempty"`
 }
