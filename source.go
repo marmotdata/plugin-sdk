@@ -90,4 +90,30 @@ type Meta struct {
 	SupportsQuery       bool          `json:"supports_query,omitempty"`
 	MarmotVersion       string        `json:"marmot_version,omitempty"`
 	ProtocolVersion     int           `json:"protocol_version,omitempty"`
+	// IdentityScope says how the systems this plugin reads are told apart,
+	// which decides the zone used when the config sets none. See the
+	// IdentityScope constants; empty is IdentityScopeNetwork.
+	IdentityScope IdentityScope `json:"identity_scope,omitempty"`
+	// Federates is true for a plugin that catalogues assets other systems own, such as Trino, OpenMetadata or dbt, so that when it and the system's own plugin describe the same asset the owner's description, schema and metadata win.
+	Federates bool `json:"federates,omitempty"`
 }
+
+// IdentityScope says what makes one of a plugin's systems different from
+// another of the same technology.
+type IdentityScope string
+
+const (
+	// IdentityScopeNetwork is a server reached over the network, such as
+	// PostgreSQL or Kafka. Without a zone its assets go to the default
+	// zone, and Marmot can map its host to a zone.
+	IdentityScopeNetwork IdentityScope = "network"
+	// IdentityScopeAccount is a cloud service whose account or project is
+	// already part of every asset's name, such as BigQuery. The zone is
+	// rarely needed.
+	IdentityScopeAccount IdentityScope = "account"
+	// IdentityScopeFile is a file on whichever machine runs the plugin, such
+	// as a DuckDB or SQLite database. Two engineers' copies of dev.duckdb are
+	// different databases, so without a zone the CLI gives each machine
+	// its own, and only an explicit zone shares one.
+	IdentityScopeFile IdentityScope = "file"
+)

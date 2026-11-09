@@ -20,6 +20,11 @@ type Asset struct {
 	Query         *string                `json:"query,omitempty"`
 	QueryLanguage *string                `json:"query_language,omitempty"`
 	ExternalLinks []AssetExternalLink    `json:"external_links,omitempty"`
+	// PreviousMRNs are MRNs this asset was known by in earlier versions of
+	// the plugin. Marmot moves an existing asset found under one of them to
+	// the new MRN, keeping its id and everything people added to it, rather
+	// than creating a second asset and deleting the first as stale.
+	PreviousMRNs []string `json:"previous_mrns,omitempty"`
 }
 
 // AssetSource records which source contributed an asset's properties.
