@@ -9,6 +9,7 @@ import (
 
 	pluginsdk "github.com/marmotdata/plugin-sdk"
 	"github.com/marmotdata/plugin-sdk/lineage/sql"
+	_ "github.com/marmotdata/plugin-sdk/lineage/sql/postgres"
 )
 
 var testSources = []sql.ExtractSource{
@@ -146,5 +147,5 @@ func TestSupported(t *testing.T) {
 	assert.True(t, sql.Supported("postgres"))
 	assert.True(t, sql.Supported("postgresql"))
 	assert.True(t, sql.Supported("pg"))
-	assert.False(t, sql.Supported("mysql"))
+	assert.False(t, sql.Supported("clickhouse"))
 }
